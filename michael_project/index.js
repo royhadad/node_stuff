@@ -25,12 +25,12 @@ app.get('/api/users/getUser/:id', (req, res) =>
             if (result)
                 responseObj.data = result;
             else
-                responseObj.error = new Error("user not found!");
+                responseObj.error = "user not found!";
             res.send(JSON.stringify(responseObj));
         })
         .catch((error) =>
         {
-            responseObj.error = error;
+            responseObj.error = error.message;
             res.status(400).send(JSON.stringify(responseObj));
         });
 });
@@ -46,7 +46,7 @@ app.post('/api/users/createUser', (req, res) =>
     if (!isInputValidated({
         username: Joi.string().min(minimumUsernameLength).max(maximumUsernameLength).regex(/\w*/).required(),
         password: Joi.string().min(minimumPasswordLength).max(maximumPasswordLength).regex(/\S*/).required(),
-        full_name: Joi.string().min(minimumFullNameLength).max(maximumFullNameLength).regex(/\D*/).required(),
+        fullName: Joi.string().min(minimumFullNameLength).max(maximumFullNameLength).regex(/\D*/).required(),
         about: Joi.string().required()
     }, userObj, res))
         return;
@@ -68,7 +68,7 @@ app.post('/api/users/createUser', (req, res) =>
         })
         .catch((error) =>
         {
-            responseObj.error = error;
+            responseObj.error = error.message;
             res.status(400).send(JSON.stringify(responseObj));
         });
 });
@@ -89,8 +89,10 @@ app.post('/api/users/login', (req, res) =>
         responseObj.data = { "token": jwt.sign({ id }, SECRET_KEY) };
         res.send(JSON.stringify(responseObj));
     }).catch(error =>
-    {
-        responseObj.error = error;
+    {   
+        console.log(error);
+        
+        responseObj.error = error.message;
         res.status(500).send(JSON.stringify(responseObj));
     });
 });
@@ -101,7 +103,7 @@ app.put('/api/users/editUser', verifyToken, (req, res) =>
 
     if (!isInputValidated({
         username: Joi.string().min(minimumUsernameLength).max(maximumUsernameLength).regex(/\w*/),
-        full_name: Joi.string().min(minimumFullNameLength).max(maximumFullNameLength).regex(/\D*/),
+        fullName: Joi.string().min(minimumFullNameLength).max(maximumFullNameLength).regex(/\D*/),
         about: Joi.string()
     }, newUserDetailsObj, res))
         return;
@@ -115,7 +117,7 @@ app.put('/api/users/editUser', verifyToken, (req, res) =>
         res.send(JSON.stringify(responseObj));
     }).catch(error =>
     {
-        responseObj.error = error;
+        responseObj.error = error.message;
         res.status(404).send(JSON.stringify(responseObj));
     });
 });
@@ -139,7 +141,7 @@ app.put('/api/users/changePassword', verifyToken, (req, res) =>
         res.send(JSON.stringify(responseObj));
     }).catch(error =>
     {
-        responseObj.error = error;
+        responseObj.error = error.message;
         console.log(error);
         res.status(404).send(JSON.stringify(responseObj));
     });
@@ -165,9 +167,9 @@ function verifyToken(req, res, next)
             let jwtResponse = jwt.verify(req.token, SECRET_KEY);
             next();
         }
-        catch (ex)
+        catch (error)
         {
-            responseObj.error = ex;
+            responseObj.error = error.message;
             res.status(403).send(JSON.stringify(responseObj));
         }
     }

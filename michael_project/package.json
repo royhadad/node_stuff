@@ -8,12 +8,17 @@
     "joi": "^14.3.1",
     "jsonwebtoken": "^8.5.1",
     "mysql": "^2.17.1",
-    "mysql-async-wrapper": "^2.0.0"
+    "mysql-async-wrapper": "^2.0.0",
+    "mysql2": "^2.1.0",
+    "sequelize": "^5.21.3",
+    "sequelize-auto": "^0.4.29",
+    "sequelize-cli": "^5.5.1"
   },
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "npx nodemon index.js"
+    "start": "npx nodemon index.js",
+    "update_db_model": "sequelize-auto -h royhadadusers.ctblchui610j.us-east-2.rds.amazonaws.com -d usersDB -u admin -x 12345678 -p 3306  --dialect mysql  -C"
   },
   "keywords": [],
   "author": "",

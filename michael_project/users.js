@@ -2,19 +2,39 @@ const mysql = require("mysql");
 const crypto = require("crypto");
 const SALT_LENGTH = 50;
 const HASH_LENGTH = 64;
+
+const Sequelize = require("sequelize");
+const sequelize = new Sequelize('usersDB', 'admin', '12345678', {
+    host: 'royhadadusers.ctblchui610j.us-east-2.rds.amazonaws.com',
+    dialect: 'mysql'
+});
+const Model = require('./models/users.js')(sequelize, Sequelize.DataTypes);
+
+// sequelize
+//     .authenticate()
+//     .then(() =>
+//     {
+//         console.log('Connection has been established successfully.');
+//     })
+//     .catch(err =>
+//     {
+//         console.error('Unable to connect to the database:', err);
+//     });
+
 module.exports = {
     getUserById: (id) =>
     {
         return new Promise((resolve, reject) =>
         {
-            const connection = getNewConnection();
-            connection.connect();
-            connection.query(`SELECT * FROM users WHERE id=${id}`, function (error, results, fields)
-            {
-                connection.end();
-                if (error) reject(error);
-                resolve(results[0]);
-            });
+            Model.findOne({ where: { id } })
+                .then(user =>
+                {
+                    resolve(user.dataValues);
+                })
+                .catch((error) =>
+                {
+                    reject(error);
+                });
         });
     },
     createUser: (user) =>
@@ -22,13 +42,18 @@ module.exports = {
         return new Promise((resolve, reject) =>
         {
             let passwordData = getHashedPasswordWithNewSalt(user.password);
-            const connection = getNewConnection();
-            connection.connect();
-            connection.query(`INSERT INTO users (username, password_hash, full_name, about, salt) VALUES("${user.username}", "${passwordData.hash}", "${user.full_name}", "${user.about}", "${passwordData.salt}")`, function (error, results, fields)
+            Model.create({
+                "username": user.username,
+                "passwordHash": passwordData.hash,
+                "fullName": user.fullName,
+                "about": user.about,
+                "salt": passwordData.salt
+            }).then((user) =>
             {
-                connection.end();
-                if (error) reject(error);
-                resolve(results);
+                resolve(user);
+            }).catch((error) =>
+            {
+                reject(error);
             });
         });
     },
@@ -36,54 +61,73 @@ module.exports = {
     {
         return new Promise((resolve, reject) =>
         {
-            const connection = getNewConnection();
-            connection.connect();
-            connection.query(`SELECT (salt) FROM users WHERE username='${username}'`, function (error, results1, fields)
-            {
-                if (error) reject(error);
-                if (results1.length !== 1) reject("invalid username or password");
-                let salt = results1[0].salt;
-                let hash = getHashedPasswordWithExistingSalt(password, salt).hash;
-                connection.query(`SELECT * FROM users WHERE username='${username}' AND password_hash='${hash}'`, function (error, results2, fields)
+            Model.findOne({ where: { username } })
+                .then(user1 =>
                 {
-                    connection.end();
-                    if (error) reject(error.message);
-                    if (results2[0] === undefined) reject("invalid username or password");
-                    resolve(results2[0].id);
+                    let salt = user1.salt;
+                    let hash = getHashedPasswordWithExistingSalt(password, salt).hash;
+                    Model.findOne({ where: { username, passwordHash: hash } })
+                        .then((user2) =>
+                        {
+                            console.log("id!!!");
+                            console.log(user2.id);
+                            resolve(user2.id);
+                        })
+                        .catch((error) =>
+                        {
+                            reject(error);
+                        });
+                })
+                .catch((error) =>
+                {
+                    reject(error);
                 });
-            });
         });
     },
     updateUserDetails: (id, details) =>
     {
         return new Promise((resolve, reject) =>
         {
-            const connection = getNewConnection();
-            connection.connect();
-            connection.query(getUpdateQuery(id, details), function (error, results, fields)
-            {
-                connection.end();
-                if (error) reject(error);
-                if (results.affectedRows !== 1) reject("user not found");
-                resolve(results);
-            });
+            console.log("details!!!");
+            console.log(details);
+            console.log(id);
+            
+            Model.update(details, { where: { "id":26 } })
+                .then((results) =>
+                {
+                    if (results.affectedRows !== 1)
+                    {
+                        
+                        reject(new Error("user not found"));
+                        return;
+                    }
+                    resolve(results);
+                })
+                .catch((error) =>
+                {
+                    reject(error);
+                });
         });
     },
     changePassword: (id, newPassword) =>
     {
         return new Promise((resolve, reject) =>
         {
-            const connection = getNewConnection();
-            connection.connect();
             let passwordData = getHashedPasswordWithNewSalt(newPassword);
-            let passwordObj = { "password_hash": passwordData.hash, "salt": passwordData.salt };
-            connection.query(getUpdateQuery(id, passwordObj), function (error, results, fields)
-            {
-                connection.end();
-                if (error) reject(error);
-                if (results.affectedRows !== 1) reject("user not found");
-                resolve(results);
-            });
+            Model.update({ "passwordHash": passwordData.hash, "salt": passwordData.salt }, { where: { id } })
+                .then((results) =>
+                {
+                    if (results.affectedRows !== 1)
+                    {
+                        reject(new Error("user not found"));
+                        return;
+                    }
+                    resolve(results);
+                })
+                .catch((error) =>
+                {
+                    reject(error);
+                });
         });
     }
 }
@@ -128,7 +172,7 @@ function getHashedPasswordWithNewSalt(userpassword)
 }
 function getHashedPasswordWithExistingSalt(userpassword, salt)
 {
-    let value = crypto.pbkdf2Sync(userpassword, salt, 1000, HASH_LENGTH/2, `sha512`).toString(`hex`); 
+    let value = crypto.pbkdf2Sync(userpassword, salt, 1000, HASH_LENGTH / 2, `sha512`).toString(`hex`);
     return {
         salt: salt,
         hash: value
