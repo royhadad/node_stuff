@@ -2,9 +2,11 @@ const express = require('express');
 const Joi = require('joi');
 const users = require('./users.js');
 const ResponseObj = require('./ResponseObj');
+const jwt = require("jsonwebtoken");
 const app = express();
 app.use(express.json());
 PORT_NUMBER = 3000;
+const SECRET_KEY = "koala";
 const minimumUsernameLength = 3;
 const maximumUsernameLength = 20;
 
@@ -14,7 +16,7 @@ const maximumPasswordLength = 20;
 const minimumFullNameLength = 5;
 const maximumFullNameLength = 30;
 
-app.get('/users/getUser/:id', (req, res) =>
+app.get('/api/users/getUser/:id', (req, res) =>
 {
     let responseObj = new ResponseObj();
     users.getUserById(req.params.id)
@@ -38,82 +40,150 @@ app.get('/favicon.ico', (req, res) =>
     res.status(204);
 });
 
-app.post('/users/createUser', (req, res) =>
+app.post('/api/users/createUser', (req, res) =>
 {
-    let responseObj = new ResponseObj();
     let userObj = req.body;
-    const schema = {
+    if (!isInputValidated({
         username: Joi.string().min(minimumUsernameLength).max(maximumUsernameLength).regex(/\w*/).required(),
         password: Joi.string().min(minimumPasswordLength).max(maximumPasswordLength).regex(/\S*/).required(),
         full_name: Joi.string().min(minimumFullNameLength).max(maximumFullNameLength).regex(/\D*/).required(),
         about: Joi.string().required()
-    };
-    let validationResult = Joi.validate(userObj, schema);
-    if (validationResult.error)
-    {
-        responseObj.error = validationResult.error.details.reduce((sum, current) => sum + current + "\n", "");
-        res.status(500).send(responseObj);
-    }
-    else
-    {
-        users.createUser(userObj)
-            .then((result) =>
+    }, userObj, res))
+        return;
+
+    let responseObj = new ResponseObj();
+    users.createUser(userObj)
+        .then((result) =>
+        {
+            if (result)
             {
-                if (result)
-                    responseObj.data = result;
-                else
-                    responseObj.error = new Error("couldnt create new user!");
+                responseObj.data = result;
+                res.send(JSON.stringify(responseObj));
+            }
+            else
+            {
+                responseObj.error = "couldnt create new user!";
                 res.status(500).send(JSON.stringify(responseObj));
-            })
-            .catch((error) =>
-            {
-                responseObj.error = error;
-                res.status(400).send(JSON.stringify(responseObj));
-            });
-    }
+            }
+        })
+        .catch((error) =>
+        {
+            responseObj.error = error;
+            res.status(400).send(JSON.stringify(responseObj));
+        });
 });
 
-app.post('users/login', (req, res) =>
+app.post('/api/users/login', (req, res) =>
 {
-    let responseObj = new ResponseObj();
     let loginDetailsObj = req.body;
-    const schema = {
+
+    if (!isInputValidated({
         username: Joi.string().min(minimumUsernameLength).max(maximumUsernameLength).regex(/\w*/).required(),
         password: Joi.string().min(minimumPasswordLength).max(maximumPasswordLength).regex(/\S*/).required(),
-    };
-    let validationResult = Joi.validate(loginDetailsObj, schema);
-    if (validationResult.error)
+    }, loginDetailsObj, res))
+        return;
+
+    let responseObj = new ResponseObj();
+    users.getIdFromUsernameAndPassword(loginDetailsObj.username, loginDetailsObj.password).then(id =>
     {
-        responseObj.error = validationResult.error.details.reduce((sum, current) => sum + current + "\n", "");
-        res.status(400).send(responseObj);
+        responseObj.data = { "token": jwt.sign({ id }, SECRET_KEY) };
+        res.send(JSON.stringify(responseObj));
+    }).catch(error =>
+    {
+        responseObj.error = error;
+        res.status(500).send(JSON.stringify(responseObj));
+    });
+});
+
+app.put('/api/users/editUser', verifyToken, (req, res) =>
+{
+    let newUserDetailsObj = req.body;
+
+    if (!isInputValidated({
+        username: Joi.string().min(minimumUsernameLength).max(maximumUsernameLength).regex(/\w*/),
+        full_name: Joi.string().min(minimumFullNameLength).max(maximumFullNameLength).regex(/\D*/),
+        about: Joi.string()
+    }, newUserDetailsObj, res))
+        return;
+
+    let responseObj = new ResponseObj();
+    let tokenBody = jwt.decode(req.token);
+    let id = tokenBody.id;
+    users.updateUserDetails(id, newUserDetailsObj).then(queryResults =>
+    {
+        responseObj.data = queryResults;
+        res.send(JSON.stringify(responseObj));
+    }).catch(error =>
+    {
+        responseObj.error = error;
+        res.status(404).send(JSON.stringify(responseObj));
+    });
+});
+
+app.put('/api/users/changePassword', verifyToken, (req, res) =>
+{
+    let newPasswordObject = req.body;
+
+    if (!isInputValidated(
+        { password: Joi.string().min(minimumPasswordLength).max(maximumPasswordLength).regex(/\S*/).required() }
+        , newPasswordObject, res))
+        return;
+
+    let responseObj = new ResponseObj();
+    let newPassword = newPasswordObject.password;
+    let tokenBody = jwt.decode(req.token);
+    let id = tokenBody.id;
+    users.changePassword(id, newPassword).then(queryResults =>
+    {
+        responseObj.data = queryResults;
+        res.send(JSON.stringify(responseObj));
+    }).catch(error =>
+    {
+        responseObj.error = error;
+        console.log(error);
+        res.status(404).send(JSON.stringify(responseObj));
+    });
+});
+
+
+//FORMAT OF TOKEN
+//auth: Bearer <access_token>
+function verifyToken(req, res, next)
+{
+    let responseObj = new ResponseObj();
+    const bearerHeader = req.headers['auth'];
+    if (typeof bearerHeader === 'undefined')
+    {
+        responseObj.error = "undefind auth";
+        res.status(403).send(JSON.stringify(responseObj));
     }
     else
     {
-        //get authorization key!
-        res.send("authorization_key_place_holder");
+        req.token = bearerHeader.split(' ')[1];
+        try
+        {
+            let jwtResponse = jwt.verify(req.token, SECRET_KEY);
+            next();
+        }
+        catch (ex)
+        {
+            responseObj.error = ex;
+            res.status(403).send(JSON.stringify(responseObj));
+        }
     }
-});
+}
 
-app.put('/users/editUser', (req, res) =>
+function isInputValidated(schema, jsonObj, res)
 {
     let responseObj = new ResponseObj();
-    //check for auth
-
-    
-
-
-
-
-});
-
-app.put('/users/changePassword', (req, res) =>
-{
-    let responseObj = new ResponseObj();
-    //check for auth
-
-
-
-
-});
+    let validationResult = Joi.validate(jsonObj, schema);
+    if (validationResult.error)
+    {
+        responseObj.error = validationResult.error.details.reduce((sum, current) => { return (sum + current.message + "\n"); }, "");
+        res.status(400).send(JSON.stringify(responseObj));
+        return false;
+    }
+    return true;
+}
 
 app.listen(PORT_NUMBER, () => console.log(`listening on port ${PORT_NUMBER}...`));

@@ -6,6 +6,7 @@
   "dependencies": {
     "express": "^4.17.1",
     "joi": "^14.3.1",
+    "jsonwebtoken": "^8.5.1",
     "mysql": "^2.17.1",
     "mysql-async-wrapper": "^2.0.0"
   },
