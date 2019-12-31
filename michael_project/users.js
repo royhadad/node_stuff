@@ -1,26 +1,15 @@
+const secretVariables = require('./secretVariables');
 const mysql = require("mysql");
 const crypto = require("crypto");
 const SALT_LENGTH = 50;
 const HASH_LENGTH = 64;
 
 const Sequelize = require("sequelize");
-const sequelize = new Sequelize('usersDB', 'admin', '12345678', {
-    host: 'royhadadusers.ctblchui610j.us-east-2.rds.amazonaws.com',
+const sequelize = new Sequelize(secretVariables.DB_NAME, secretVariables.DB_USERNAME, secretVariables.DB_PASSWORD, {
+    host: secretVariables.DB_HOST,
     dialect: 'mysql'
 });
 const Model = require('./models/users.js')(sequelize, Sequelize.DataTypes);
-
-//not needed
-// sequelize
-//     .authenticate()
-//     .then(() =>
-//     {
-//         console.log('Connection has been established successfully.');
-//     })
-//     .catch(err =>
-//     {
-//         console.error('Unable to connect to the database:', err);
-//     });
 
 module.exports = {
     getUserById: (id) =>
@@ -157,6 +146,18 @@ function getHashedPasswordWithExistingSalt(userpassword, salt)
     };
 }
 
+//not needed
+// sequelize
+//     .authenticate()
+//     .then(() =>
+//     {
+//         console.log('Connection has been established successfully.');
+//     })
+//     .catch(err =>
+//     {
+//         console.error('Unable to connect to the database:', err);
+//     });
+//
 //deprecated
 // function getNewConnection()
 // {

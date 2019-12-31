@@ -1,3 +1,4 @@
+const secretVariables = require('./secretVariables');
 const ERROR_CODES = require('./errorCodes.js');
 const express = require('express');
 const Joi = require('joi');
@@ -7,7 +8,9 @@ const jwt = require("jsonwebtoken");
 const app = express();
 app.use(express.json());
 PORT_NUMBER = 3000;
-const SECRET_KEY = "koala";
+const SECRET_KEY = secretVariables.SECRET_KEY;
+
+//#region validation constants
 const MINIMUM_USERNAME_LENGTH = 3;
 const MAXIMUM_USERNAME_LENGTH = 20;
 
@@ -21,6 +24,7 @@ const USERNAME_VALIDATION_OBJECT = Joi.string().min(MINIMUM_USERNAME_LENGTH).max
 const PASSWORD_VALIDATION_OBJECT = Joi.string().min(MINIMUM_PASSWORD_LENGTH).max(MAXIMUM_PASSWORD_LENGTH).regex(/\S*/);
 const FULLNAME_VALIDATION_OBJECT = Joi.string().min(MINIMUM_FULLNAME_LENGTH).max(MAXIMUM_FULLNAME_LENGTH).regex(/\D*/);
 const ABOUT_VALIDATION_OBJECT = Joi.string();
+//#endregion
 
 app.get('/api/users/getUser/:id', (req, res) =>
 {
@@ -157,7 +161,7 @@ app.put('/api/users/changePassword', verifyToken, (req, res) =>
 });
 
 
-//FORMAT OF TOKEN
+//FORMAT OF TOKEN:
 //auth: Bearer <access_token>
 function verifyToken(req, res, next)
 {
