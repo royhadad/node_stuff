@@ -18,12 +18,12 @@ module.exports = function(sequelize, DataTypes) {
     passwordHash: {
       type: DataTypes.STRING(100),
       allowNull: false,
-      field: 'password_hash'
+      field: 'passwordHash'
     },
     fullName: {
       type: DataTypes.STRING(100),
       allowNull: false,
-      field: 'full_name'
+      field: 'fullName'
     },
     about: {
       type: DataTypes.TEXT,
@@ -44,7 +44,6 @@ module.exports = function(sequelize, DataTypes) {
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: true,
-      defaultValue: sequelize.literal('CURRENT_TIMESTAMP'),
       field: 'updatedAt'
     },
     salt: {

@@ -1,3 +1,4 @@
+const ERROR_CODES = require('./errorCodes.js');
 const express = require('express');
 const Joi = require('joi');
 const users = require('./users.js');
@@ -7,14 +8,19 @@ const app = express();
 app.use(express.json());
 PORT_NUMBER = 3000;
 const SECRET_KEY = "koala";
-const minimumUsernameLength = 3;
-const maximumUsernameLength = 20;
+const MINIMUM_USERNAME_LENGTH = 3;
+const MAXIMUM_USERNAME_LENGTH = 20;
 
-const minimumPasswordLength = 6;
-const maximumPasswordLength = 20;
+const MINIMUM_PASSWORD_LENGTH = 6;
+const MAXIMUM_PASSWORD_LENGTH = 20;
 
-const minimumFullNameLength = 5;
-const maximumFullNameLength = 30;
+const MINIMUM_FULLNAME_LENGTH = 5;
+const MAXIMUM_FULLNAME_LENGTH = 30;
+
+const USERNAME_VALIDATION_OBJECT = Joi.string().min(MINIMUM_USERNAME_LENGTH).max(MAXIMUM_USERNAME_LENGTH).regex(/\w*/);
+const PASSWORD_VALIDATION_OBJECT = Joi.string().min(MINIMUM_PASSWORD_LENGTH).max(MAXIMUM_PASSWORD_LENGTH).regex(/\S*/);
+const FULLNAME_VALIDATION_OBJECT = Joi.string().min(MINIMUM_FULLNAME_LENGTH).max(MAXIMUM_FULLNAME_LENGTH).regex(/\D*/);
+const ABOUT_VALIDATION_OBJECT = Joi.string();
 
 app.get('/api/users/getUser/:id', (req, res) =>
 {
@@ -23,31 +29,36 @@ app.get('/api/users/getUser/:id', (req, res) =>
         .then((result) =>
         {
             if (result)
+            {
                 responseObj.data = result;
+                res.send(JSON.stringify(responseObj));
+            }
             else
+            {
                 responseObj.error = "user not found!";
-            res.send(JSON.stringify(responseObj));
+                res.status(ERROR_CODES.NOT_FOUND).send(JSON.stringify(responseObj));
+            }
         })
         .catch((error) =>
         {
             responseObj.error = error.message;
-            res.status(400).send(JSON.stringify(responseObj));
+            res.status(ERROR_CODES.NOT_FOUND).send(JSON.stringify(responseObj));
         });
 });
 
 app.get('/favicon.ico', (req, res) =>
 {
-    res.status(204);
+    res.status(ERROR_CODES.NO_CONTENT);
 });
 
 app.post('/api/users/createUser', (req, res) =>
 {
     let userObj = req.body;
     if (!isInputValidated({
-        username: Joi.string().min(minimumUsernameLength).max(maximumUsernameLength).regex(/\w*/).required(),
-        password: Joi.string().min(minimumPasswordLength).max(maximumPasswordLength).regex(/\S*/).required(),
-        fullName: Joi.string().min(minimumFullNameLength).max(maximumFullNameLength).regex(/\D*/).required(),
-        about: Joi.string().required()
+        username: USERNAME_VALIDATION_OBJECT.required(),
+        password: PASSWORD_VALIDATION_OBJECT.required(),
+        fullName: FULLNAME_VALIDATION_OBJECT.required(),
+        about: ABOUT_VALIDATION_OBJECT.required()
     }, userObj, res))
         return;
 
@@ -58,18 +69,18 @@ app.post('/api/users/createUser', (req, res) =>
             if (result)
             {
                 responseObj.data = result;
-                res.send(JSON.stringify(responseObj));
+                res.status(ERROR_CODES.CREATED).send(JSON.stringify(responseObj));
             }
             else
             {
                 responseObj.error = "couldnt create new user!";
-                res.status(500).send(JSON.stringify(responseObj));
+                res.status(ERROR_CODES.BAD_REQUEST).send(JSON.stringify(responseObj));
             }
         })
         .catch((error) =>
         {
             responseObj.error = error.message;
-            res.status(400).send(JSON.stringify(responseObj));
+            res.status(ERROR_CODES.BAD_REQUEST).send(JSON.stringify(responseObj));
         });
 });
 
@@ -78,8 +89,8 @@ app.post('/api/users/login', (req, res) =>
     let loginDetailsObj = req.body;
 
     if (!isInputValidated({
-        username: Joi.string().min(minimumUsernameLength).max(maximumUsernameLength).regex(/\w*/).required(),
-        password: Joi.string().min(minimumPasswordLength).max(maximumPasswordLength).regex(/\S*/).required(),
+        username: USERNAME_VALIDATION_OBJECT.required(),
+        password: PASSWORD_VALIDATION_OBJECT.required(),
     }, loginDetailsObj, res))
         return;
 
@@ -90,10 +101,8 @@ app.post('/api/users/login', (req, res) =>
         res.send(JSON.stringify(responseObj));
     }).catch(error =>
     {   
-        console.log(error);
-        
         responseObj.error = error.message;
-        res.status(500).send(JSON.stringify(responseObj));
+        res.status(ERROR_CODES.NOT_FOUND).send(JSON.stringify(responseObj));
     });
 });
 
@@ -102,9 +111,9 @@ app.put('/api/users/editUser', verifyToken, (req, res) =>
     let newUserDetailsObj = req.body;
 
     if (!isInputValidated({
-        username: Joi.string().min(minimumUsernameLength).max(maximumUsernameLength).regex(/\w*/),
-        fullName: Joi.string().min(minimumFullNameLength).max(maximumFullNameLength).regex(/\D*/),
-        about: Joi.string()
+        username: USERNAME_VALIDATION_OBJECT,
+        fullName: FULLNAME_VALIDATION_OBJECT,
+        about: ABOUT_VALIDATION_OBJECT
     }, newUserDetailsObj, res))
         return;
 
@@ -118,7 +127,7 @@ app.put('/api/users/editUser', verifyToken, (req, res) =>
     }).catch(error =>
     {
         responseObj.error = error.message;
-        res.status(404).send(JSON.stringify(responseObj));
+        res.status(ERROR_CODES.BAD_REQUEST).send(JSON.stringify(responseObj));
     });
 });
 
@@ -127,7 +136,7 @@ app.put('/api/users/changePassword', verifyToken, (req, res) =>
     let newPasswordObject = req.body;
 
     if (!isInputValidated(
-        { password: Joi.string().min(minimumPasswordLength).max(maximumPasswordLength).regex(/\S*/).required() }
+        { password: PASSWORD_VALIDATION_OBJECT.required() }
         , newPasswordObject, res))
         return;
 
@@ -143,7 +152,7 @@ app.put('/api/users/changePassword', verifyToken, (req, res) =>
     {
         responseObj.error = error.message;
         console.log(error);
-        res.status(404).send(JSON.stringify(responseObj));
+        res.status(ERROR_CODES.BAD_REQUEST).send(JSON.stringify(responseObj));
     });
 });
 
@@ -157,7 +166,7 @@ function verifyToken(req, res, next)
     if (typeof bearerHeader === 'undefined')
     {
         responseObj.error = "undefind auth";
-        res.status(403).send(JSON.stringify(responseObj));
+        res.status(ERROR_CODES.UNAUTHORIZED).send(JSON.stringify(responseObj));
     }
     else
     {
@@ -170,7 +179,7 @@ function verifyToken(req, res, next)
         catch (error)
         {
             responseObj.error = error.message;
-            res.status(403).send(JSON.stringify(responseObj));
+            res.status(ERROR_CODES.UNAUTHORIZED).send(JSON.stringify(responseObj));
         }
     }
 }
@@ -178,11 +187,17 @@ function verifyToken(req, res, next)
 function isInputValidated(schema, jsonObj, res)
 {
     let responseObj = new ResponseObj();
+    if(Object.keys(jsonObj).length===0)
+    {
+        responseObj.error = "no input inserted to json";
+        res.status(ERROR_CODES.BAD_REQUEST).send(JSON.stringify(responseObj));
+        return false;
+    }
     let validationResult = Joi.validate(jsonObj, schema);
     if (validationResult.error)
     {
         responseObj.error = validationResult.error.details.reduce((sum, current) => { return (sum + current.message + "\n"); }, "");
-        res.status(400).send(JSON.stringify(responseObj));
+        res.status(ERROR_CODES.BAD_REQUEST).send(JSON.stringify(responseObj));
         return false;
     }
     return true;

@@ -10,6 +10,7 @@ const sequelize = new Sequelize('usersDB', 'admin', '12345678', {
 });
 const Model = require('./models/users.js')(sequelize, Sequelize.DataTypes);
 
+//not needed
 // sequelize
 //     .authenticate()
 //     .then(() =>
@@ -64,19 +65,24 @@ module.exports = {
             Model.findOne({ where: { username } })
                 .then(user1 =>
                 {
-                    let salt = user1.salt;
-                    let hash = getHashedPasswordWithExistingSalt(password, salt).hash;
-                    Model.findOne({ where: { username, passwordHash: hash } })
-                        .then((user2) =>
-                        {
-                            console.log("id!!!");
-                            console.log(user2.id);
-                            resolve(user2.id);
-                        })
-                        .catch((error) =>
-                        {
-                            reject(error);
-                        });
+                    if (user1 === null)
+                    {
+                        reject(new Error("username or password does not exist"));
+                    }
+                    else
+                    {
+                        let salt = user1.salt;
+                        let hash = getHashedPasswordWithExistingSalt(password, salt).hash;
+                        Model.findOne({ where: { username, passwordHash: hash } })
+                            .then((user2) =>
+                            {
+                                resolve(user2.id);
+                            })
+                            .catch((error) =>
+                            {
+                                reject(error);
+                            });
+                    }
                 })
                 .catch((error) =>
                 {
@@ -88,20 +94,17 @@ module.exports = {
     {
         return new Promise((resolve, reject) =>
         {
-            console.log("details!!!");
-            console.log(details);
-            console.log(id);
-            
-            Model.update(details, { where: { "id":26 } })
+            Model.update(details, { where: { "id": id } })
                 .then((results) =>
                 {
-                    if (results.affectedRows !== 1)
+                    if (results[0] !== 1)
                     {
-                        
                         reject(new Error("user not found"));
-                        return;
                     }
-                    resolve(results);
+                    else
+                    {
+                        resolve(results);
+                    }
                 })
                 .catch((error) =>
                 {
@@ -117,12 +120,14 @@ module.exports = {
             Model.update({ "passwordHash": passwordData.hash, "salt": passwordData.salt }, { where: { id } })
                 .then((results) =>
                 {
-                    if (results.affectedRows !== 1)
+                    if (results[0] !== 1)
                     {
                         reject(new Error("user not found"));
-                        return;
                     }
-                    resolve(results);
+                    else
+                    {
+                        resolve(results);
+                    }
                 })
                 .catch((error) =>
                 {
@@ -130,33 +135,6 @@ module.exports = {
                 });
         });
     }
-}
-
-function getNewConnection()
-{
-    return mysql.createConnection(
-        {
-            host: 'royhadadusers.ctblchui610j.us-east-2.rds.amazonaws.com',
-            user: 'admin',
-            password: '12345678',
-            database: 'usersDB'
-        }
-    );
-}
-
-function getUpdateQuery(id, details)
-{
-    let setString = "";
-    let keys = Object.keys(details);
-    for (let key of keys)
-    {
-        if (typeof details[key] === "string")
-            setString += ` ${key}='${details[key]}',`;
-        else
-            setString += ` ${key}=${details[key]},`;
-    }
-    setString = setString.substr(0, setString.length - 1)
-    return `UPDATE users SET${setString} WHERE id=${id}`;
 }
 
 function genRandomSalt()
@@ -178,3 +156,30 @@ function getHashedPasswordWithExistingSalt(userpassword, salt)
         hash: value
     };
 }
+
+//deprecated
+// function getNewConnection()
+// {
+//     return mysql.createConnection(
+//         {
+//             host: 'royhadadusers.ctblchui610j.us-east-2.rds.amazonaws.com',
+//             user: 'admin',
+//             password: '12345678',
+//             database: 'usersDB'
+//         }
+//     );
+// }
+// function getUpdateQuery(id, details)
+// {
+//     let setString = "";
+//     let keys = Object.keys(details);
+//     for (let key of keys)
+//     {
+//         if (typeof details[key] === "string")
+//             setString += ` ${key}='${details[key]}',`;
+//         else
+//             setString += ` ${key}=${details[key]},`;
+//     }
+//     setString = setString.substr(0, setString.length - 1)
+//     return `UPDATE users SET${setString} WHERE id=${id}`;
+// }
