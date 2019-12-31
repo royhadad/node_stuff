@@ -1,4 +1,4 @@
-const secretVariables = require('./secretVariables');
+const secretVariables = require('dotenv').config().parsed;
 const mysql = require("mysql");
 const crypto = require("crypto");
 const SALT_LENGTH = 50;

@@ -1,8 +1,7 @@
 //TODO
 //make secret variables actually secured
 //use express routes
-
-const secretVariables = require('./secretVariables.js');
+const secretVariables = require('dotenv').config().parsed;
 const ERROR_CODES = require('./errorCodes.js');
 const express = require('express');
 const users = require('./users.js');
