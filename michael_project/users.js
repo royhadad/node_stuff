@@ -133,7 +133,6 @@ function genRandomSalt()
         .toString('hex') /** convert to hexadecimal format */
         .slice(0, SALT_LENGTH);   /** return required number of characters */
 };
-
 function getHashedPasswordWithNewSalt(userpassword)
 {
     return getHashedPasswordWithExistingSalt(userpassword, genRandomSalt());
