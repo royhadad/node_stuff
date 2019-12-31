@@ -1,30 +1,18 @@
-const secretVariables = require('./secretVariables');
+//TODO
+//make secret variables actually secured
+//use express routes
+
+const secretVariables = require('./secretVariables.js');
 const ERROR_CODES = require('./errorCodes.js');
 const express = require('express');
-const Joi = require('joi');
 const users = require('./users.js');
-const ResponseObj = require('./ResponseObj');
+const ResponseObj = require('./ResponseObj.js');
+const isInputValid = require('./inputValidation.js');
 const jwt = require("jsonwebtoken");
 const app = express();
 app.use(express.json());
 PORT_NUMBER = 3000;
 const SECRET_KEY = secretVariables.SECRET_KEY;
-
-//#region validation constants
-const MINIMUM_USERNAME_LENGTH = 3;
-const MAXIMUM_USERNAME_LENGTH = 20;
-
-const MINIMUM_PASSWORD_LENGTH = 6;
-const MAXIMUM_PASSWORD_LENGTH = 20;
-
-const MINIMUM_FULLNAME_LENGTH = 5;
-const MAXIMUM_FULLNAME_LENGTH = 30;
-
-const USERNAME_VALIDATION_OBJECT = Joi.string().min(MINIMUM_USERNAME_LENGTH).max(MAXIMUM_USERNAME_LENGTH).regex(/\w*/);
-const PASSWORD_VALIDATION_OBJECT = Joi.string().min(MINIMUM_PASSWORD_LENGTH).max(MAXIMUM_PASSWORD_LENGTH).regex(/\S*/);
-const FULLNAME_VALIDATION_OBJECT = Joi.string().min(MINIMUM_FULLNAME_LENGTH).max(MAXIMUM_FULLNAME_LENGTH).regex(/\D*/);
-const ABOUT_VALIDATION_OBJECT = Joi.string();
-//#endregion
 
 app.get('/api/users/getUser/:id', (req, res) =>
 {
@@ -58,7 +46,7 @@ app.get('/favicon.ico', (req, res) =>
 app.post('/api/users/createUser', (req, res) =>
 {
     let userObj = req.body;
-    if (!isInputValidated({
+    if (!isInputValid({
         username: USERNAME_VALIDATION_OBJECT.required(),
         password: PASSWORD_VALIDATION_OBJECT.required(),
         fullName: FULLNAME_VALIDATION_OBJECT.required(),
@@ -92,7 +80,7 @@ app.post('/api/users/login', (req, res) =>
 {
     let loginDetailsObj = req.body;
 
-    if (!isInputValidated({
+    if (!isInputValid({
         username: USERNAME_VALIDATION_OBJECT.required(),
         password: PASSWORD_VALIDATION_OBJECT.required(),
     }, loginDetailsObj, res))
@@ -114,7 +102,7 @@ app.put('/api/users/editUser', verifyToken, (req, res) =>
 {
     let newUserDetailsObj = req.body;
 
-    if (!isInputValidated({
+    if (!isInputValid({
         username: USERNAME_VALIDATION_OBJECT,
         fullName: FULLNAME_VALIDATION_OBJECT,
         about: ABOUT_VALIDATION_OBJECT
@@ -139,7 +127,7 @@ app.put('/api/users/changePassword', verifyToken, (req, res) =>
 {
     let newPasswordObject = req.body;
 
-    if (!isInputValidated(
+    if (!isInputValid(
         { password: PASSWORD_VALIDATION_OBJECT.required() }
         , newPasswordObject, res))
         return;
@@ -186,25 +174,6 @@ function verifyToken(req, res, next)
             res.status(ERROR_CODES.UNAUTHORIZED).send(JSON.stringify(responseObj));
         }
     }
-}
-
-function isInputValidated(schema, jsonObj, res)
-{
-    let responseObj = new ResponseObj();
-    if(Object.keys(jsonObj).length===0)
-    {
-        responseObj.error = "no input inserted to json";
-        res.status(ERROR_CODES.BAD_REQUEST).send(JSON.stringify(responseObj));
-        return false;
-    }
-    let validationResult = Joi.validate(jsonObj, schema);
-    if (validationResult.error)
-    {
-        responseObj.error = validationResult.error.details.reduce((sum, current) => { return (sum + current.message + "\n"); }, "");
-        res.status(ERROR_CODES.BAD_REQUEST).send(JSON.stringify(responseObj));
-        return false;
-    }
-    return true;
 }
 
 app.listen(PORT_NUMBER, () => console.log(`listening on port ${PORT_NUMBER}...`));
