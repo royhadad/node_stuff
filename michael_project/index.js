@@ -7,7 +7,7 @@ const ERROR_CODES = require('./errorCodes.js');
 const express = require('express');
 const users = require('./users.js');
 const ResponseObj = require('./ResponseObj.js');
-const isInputValid = require('./inputValidation.js');
+const { isInputValid, USERNAME_VALIDATION_OBJECT, PASSWORD_VALIDATION_OBJECT, FULLNAME_VALIDATION_OBJECT, ABOUT_VALIDATION_OBJECT } = require('./inputValidation.js');
 const jwt = require("jsonwebtoken");
 const app = express();
 app.use(express.json());
@@ -92,7 +92,7 @@ app.post('/api/users/login', (req, res) =>
         responseObj.data = { "token": jwt.sign({ id }, SECRET_KEY) };
         res.send(JSON.stringify(responseObj));
     }).catch(error =>
-    {   
+    {
         responseObj.error = error.message;
         res.status(ERROR_CODES.NOT_FOUND).send(JSON.stringify(responseObj));
     });

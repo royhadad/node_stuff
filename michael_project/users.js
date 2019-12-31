@@ -7,6 +7,7 @@ const HASH_LENGTH = 64;
 const Sequelize = require("sequelize");
 const sequelize = new Sequelize(secretVariables.DB_NAME, secretVariables.DB_USERNAME, secretVariables.DB_PASSWORD, {
     host: secretVariables.DB_HOST,
+    port: secretVariables.DB_PORT,
     dialect: 'mysql'
 });
 const Model = require('./models/users.js')(sequelize, Sequelize.DataTypes);

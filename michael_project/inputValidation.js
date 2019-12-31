@@ -1,4 +1,5 @@
 const Joi = require('joi');
+const ResponseObj = require('./ResponseObj.js');
 
 const MINIMUM_USERNAME_LENGTH = 3;
 const MAXIMUM_USERNAME_LENGTH = 20;
@@ -9,16 +10,10 @@ const MAXIMUM_PASSWORD_LENGTH = 20;
 const MINIMUM_FULLNAME_LENGTH = 5;
 const MAXIMUM_FULLNAME_LENGTH = 30;
 
-const USERNAME_VALIDATION_OBJECT = Joi.string().min(MINIMUM_USERNAME_LENGTH).max(MAXIMUM_USERNAME_LENGTH).regex(/\w*/);
-const PASSWORD_VALIDATION_OBJECT = Joi.string().min(MINIMUM_PASSWORD_LENGTH).max(MAXIMUM_PASSWORD_LENGTH).regex(/\S*/);
-const FULLNAME_VALIDATION_OBJECT = Joi.string().min(MINIMUM_FULLNAME_LENGTH).max(MAXIMUM_FULLNAME_LENGTH).regex(/\D*/);
-const ABOUT_VALIDATION_OBJECT = Joi.string();
-
-
 function isInputValid(schema, jsonObj, res)
 {
     let responseObj = new ResponseObj();
-    if(Object.keys(jsonObj).length===0)
+    if (Object.keys(jsonObj).length === 0)
     {
         responseObj.error = "no input inserted to json";
         res.status(ERROR_CODES.BAD_REQUEST).send(JSON.stringify(responseObj));
@@ -33,4 +28,10 @@ function isInputValid(schema, jsonObj, res)
     }
     return true;
 }
-module.exports = isInputValid;
+module.exports = {
+    isInputValid,
+    USERNAME_VALIDATION_OBJECT: Joi.string().min(MINIMUM_USERNAME_LENGTH).max(MAXIMUM_USERNAME_LENGTH).regex(/\w*/),
+    PASSWORD_VALIDATION_OBJECT: Joi.string().min(MINIMUM_PASSWORD_LENGTH).max(MAXIMUM_PASSWORD_LENGTH).regex(/\S*/),
+    FULLNAME_VALIDATION_OBJECT: Joi.string().min(MINIMUM_FULLNAME_LENGTH).max(MAXIMUM_FULLNAME_LENGTH).regex(/\D*/),
+    ABOUT_VALIDATION_OBJECT: Joi.string()
+};
